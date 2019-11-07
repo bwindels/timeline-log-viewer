@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style type="text/css">
+			body {
+				--scale: 1;
+				font-family: sans-serif;
+				font-size: 1rem;
+				margin: 0;
+			}
+			
+			main div.track {
+				padding: 2px;
+				background-color: white;
+				border-bottom: 1px solid lightgrey;
+				/* use grid to have all item nodes overlap (instead of position: absolute),
+				   so they can have an absolute offset from the left */
+				display: grid;
+				/* show time scale through repeating background (gradient)? */
+			}
+
+			main div.item {
+				grid-column: 1;
+				grid-row: 1;
+				padding: 2px;
+				background: lightgreen;
+				border: 1px solid black;
+				color: black;
+				overflow-x: hidden;
+				width: calc(1px * var(--scale) * var(--length));
+				box-sizing: border-box;
+				margin-left: calc(1px * var(--scale) * var(--offset));;
+			}
+
+			main div.item:hover {
+				min-width: max-content;
+				z-index: 1;
+			}
+			
+
+		</style>
+	</head>
+	<body>
+		<main>
+			<div class="track">
+				<div style="--offset: 5; --length: 10;" class="item">sync</div>
+				<div style="--offset: 20; --length: 10;" class="item">sync</div>
+			</div>
+			<div class="track">
+				<div style="--offset: 5; --length: 10;" class="item">sync</div>
+				<div style="--offset: 20; --length: 10;" class="item">sync</div>
+			</div>
+			<div class="track">
+				<div style="--offset: 5; --length: 10;" class="item">sync</div>
+				<div style="--offset: 20; --length: 10;" class="item">sync</div>
+			</div>
+			<div class="track">
+				<div style="--offset: 5; --length: 10;" class="item">sync</div>
+				<div style="--offset: 200; --length: 400;" class="item">sync</div>
+			</div>
+		</main>
+		<script type="text/javascript">
+			const data = [
+				{values: {label: "sync", type: "root"}, start: 122, end: 2323, children: [
+					{values: {label: "/sync request" type: "network"}, start: 145, end: 235},
+					{values: {label: "persist room", roomId: "!abc:matrix.org"}, start: 154, end: 210, children: [
+						{values: {label: "write room summary", roomId: "!abc:matrix.org"}, start: 167, end: 321},
+						{values: {label: "write timeline"}, start: 154, end: 321, children: [
+							{values: {label: "new live fragment", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321},
+						]},
+					]},
+					{values: {label: "persist room", roomId: "!sfsf:matrix.org"}, start: 178, end: 321},
+					{values: {label: "persist room", roomId: "!fsdfsdf:matrix.org"}, start: 150, end: 321},
+					{values: {label: "persist room", roomId: "!werew:matrix.org"}, start: 210, end: 321},
+					{values: {label: "persist room", roomId: "!sdfdf:matrix.org"}, start: 1500, end: 2000},
+				]}
+			];
+
+
+			
+		</script>
+	</body>
+</html>
