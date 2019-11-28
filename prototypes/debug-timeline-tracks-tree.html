@@ -24,6 +24,10 @@
 				background-attachment: local;
 			}
 
+			main {
+				--hue: 120deg;
+			}
+
 			main, main div.subtree {
 				/* use grid to have all item nodes overlap (instead of position: absolute),
 				   so they can have an absolute offset from the left */
@@ -34,21 +38,24 @@
 				margin-left: calc(1px * var(--scale) * var(--offset));
 				grid-column: 1;
 				grid-row: calc(1 + var(--row));
+				--brightness: calc(calc(1 - calc(var(--depth) / 20)) * 90%);
+				--bg-color: hsl(var(--hue), 50%, var(--brightness));
+				--border-color: hsl(var(--hue), 50%, calc(var(--brightness) - 30%));
 			}
 
-			div.subtree.withChildren {
-				/* hue could differ with type of node (e.g. network, storage, ...) */
-				--hue: 120deg;
-				/* when several layers of children start at same time as parent it is hard to see which parent they belong to, so try to indicated depth with increasingly darker color */
-				background-color: hsl(var(--hue), 50%, calc(calc(1 - calc(calc(var(--depth) + 1) / 20)) * 100%));
+			main div.item.selected {
+				--bg-color: Highlight;
+				--border-color: Highlight;
+				color: HighlightText;
 			}
 
 			main div.item {
+				cursor: pointer;
 				grid-column: 1;
 				grid-row: 1;
 				padding: 2px;
 				margin-bottom: 2px;
-				border: 1px solid black;
+				border: 1px solid var(--border-color);
 				color: black;
 				overflow-x: hidden;
 				box-sizing: border-box;
@@ -56,11 +63,18 @@
 				white-space: nowrap;
 				text-overflow: ellipsis;
 				width: calc(1px * var(--scale) * var(--length));
+				min-width: 1rem;
 				/* needs an explicit height because we don't want
 				to get the height of the tallest sibling,
 				as siblings might have children and be higher */
-				height: 1.555rem;
+				height: 1.333em;
 				z-index: 1;
+				/* hue could differ with type of node (e.g. network, storage, ...) */
+				/* when several layers of children start at same time as parent it is hard to see which parent they belong to, so try to indicated depth with increasingly darker color */
+				background-color: var(--bg-color);
+			}
+			main div.dark {
+				color: white;
 			}
 
 			main div.subtree::before {
@@ -69,68 +83,98 @@
 				grid-row: 1;
 				--indicator-size: calc(0.2rem * var(--depth));
 				/* 0.5 rem to always make the line visible, even if the child starts at the same time as parent */
-				width: calc(calc(1px * var(--scale) * var(--offset)) + var(--indicator-size));
-				border-bottom: 1px solid green;
-				border-left: var(--indicator-size) solid green;
+				width: calc(calc(1px * var(--scale)) * var(--offset));
+				border-bottom: 1px solid var(--border-color);
+				border-left: var(--indicator-size) solid var(--border-color);
 				height: 0.55rem;
 				margin-top: 0.2rem;
 				margin-left: calc(calc(-1px * var(--scale) * var(--offset)) - var(--indicator-size));
 				z-index: 0;
 			}
 
-			main div.item:hover {
+			main div.item:hover, main div.item.selected {
 				min-width: max-content;
 				z-index: 2;
 			}
 
-			.depth0 {
-				background-color: lightgreen;
+			.type-info {
+				--hue: 200deg;
 			}
-			.depth1 {
-				background-color: lightblue;
-			}
-			.depth2 {
-				background-color: red;
+
+			.type-network {
+				--hue: 0deg;
 			}
 		</style>
 	</head>
 	<body>
-		<!--
-<div class="subtree" style="--offset: 5; --length: 100; --row: 1">
-				<div class="item">sync</div>
-				<div class="subtree" style="--offset: 5; --length: 200; --row: 1;">
-					<div class="item" style="background-color: lightblue;">/sync</div>
-					<div class="subtree" style="--offset: 50; --length: 100; --row: 1;">
-						<div class="item" style="background-color: purple; color: white;">stuffs</div>
-					</div>
-				</div>
-				<div class="subtree" style="--offset: 500; --length: 200; --row: 1;">
-					<div class="item" style="background-color: lightblue;">persist</div>
-				</div>
-				<div class="subtree" style="--offset: 50; --length: 70; --row: 2;">
-					<div class="item" style="background-color: lightblue;">/messages</div>
-				</div>
-			</div>
-		-->
 		<div>
-			<div><input type="range" min="0.1" max="10" step="0.05" id="scale" value="1"><label for="scale">Scale</label></div>
+			<div><input type="range" min="0.1" max="20" step="0.05" id="scale" value="1"><label for="scale">Scale</label></div>
 		</div>
 		<main>
 			
 		</main>
 		<script type="text/javascript">
+			/*
+			idea: show chronogical (and if same in order) log in details panel of children, much like textual log?
+			*/
 			document.getElementById("scale").addEventListener("input", event => {
-				document.body.style.setProperty("--scale", event.target.value);
+				const scale = parseFloat(event.target.value, 10);
+				let timescaleUnit;
+				if (scale >= 10) {
+					timescaleUnit = 5;
+				} else if (scale >= 5) {
+					timescaleUnit = 10;
+				} else if (scale >= 2) {
+					timescaleUnit = 20;
+				} else if (scale >= 1) {
+					timescaleUnit = 500;
+				} else if (scale >= 0.1) {
+					timescaleUnit = 1000;
+				}
+				document.body.style.setProperty("--scale", scale);
+				// document.querySelector("main").style.setProperty("--timescale-unit", timescaleUnit);
+			});
+			let selectedItemNode;
+			document.querySelector("main").addEventListener("click", event => {
+				if (selectedItemNode) {
+					selectedItemNode.classList.remove("selected");
+					selectedItemNode = null;
+				}
+				if (event.target.classList.contains("item")) {
+					selectedItemNode = event.target;
+					selectedItemNode.classList.add("selected");
+				}
 			});
 			const data = [
 				{values: {label: "sync", type: "root"}, start: 122, end: 2323, children: [
-					{values: {label: "blub", type: "network"}, start: 60, end: 321},
+					{values: {label: "blub", type: "network"}, start: 60, end: 321, children: [
+						{values: {label: "bar1", type: "info"}, start: 60, end: 60},
+						{values: {label: "bar2", type: "info"}, start: 60, end: 60},
+						{values: {label: "bar3", type: "info"}, start: 60, end: 60},
+						{values: {label: "bar4", type: "info"}, start: 60, end: 60},
+						{values: {label: "bar5", type: "info"}, start: 61, end: 61},
+						{values: {label: "bar6", type: "info"}, start: 61, end: 61},
+						{values: {label: "bar7", type: "info"}, start: 61, end: 61},
+						{values: {label: "bar8", type: "info"}, start: 61, end: 61},
+					]},
 					{values: {label: "/sync request", type: "network"}, start: 145, end: 235},
 					{values: {label: "persist room", roomId: "!abc:matrix.org"}, start: 154, end: 210, children: [
 						{values: {label: "write room summary", roomId: "!abc:matrix.org"}, start: 167, end: 371},
 						{values: {label: "write timeline"}, start: 154, end: 321, children: [
 							{values: {label: "new live fragment", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321}
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321}
+							]}
+							]}
+							]}
+							]}
+							]}
+							]}
 							]},
 						]},
 					]},
@@ -157,9 +201,9 @@
 				const b = resultB.range;
 
 				if (a.start <= b.start) {
-					return a.end > b.start;
+					return a.end >= b.start;
 				} else {
-					return b.end > a.start;
+					return b.end >= a.start;
 				}
 			}
 
@@ -184,13 +228,20 @@
 				subtree.style.setProperty("--length", item.end - item.start);
 				subtree.style.setProperty("--depth", depth);
 				const itemNode = document.createElement("div");
-				// itemNode.className = `item depth${depth % 3}`;
-				itemNode.className = `item depth0`;
+				itemNode.className = "item";
 				itemNode.appendChild(document.createTextNode(item.values.label));
 				subtree.appendChild(itemNode);
 
 				let minStart = item.start;
 				let maxEnd = item.end;
+
+				if (item.values && item.values.type) {
+					subtree.classList.add(`type-${item.values.type}`);
+				}
+
+				if (depth > 8) {
+					itemNode.classList.add("dark");
+				}
 
 				if (item.children) {
 					subtree.classList.add("withChildren");
