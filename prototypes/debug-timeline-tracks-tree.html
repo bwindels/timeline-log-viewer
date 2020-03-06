@@ -17,8 +17,8 @@
 				overflow-x: scroll;
 				/* seems to render a thicker line starting from scale 1.92 an no line at all from scale 2.56 */
 				background: repeating-linear-gradient(to right,
-					white 0px,
-					white var(--timescale-line-start),
+					var(--background) 0px,
+					var(--background) var(--timescale-line-start),
 					gray var(--timescale-line-start),
 					gray var(--timescale-line-end));
 				background-attachment: local;
@@ -26,6 +26,7 @@
 
 			main {
 				--hue: 120deg;
+				--background: white;
 			}
 
 			main, main div.subtree {
@@ -77,7 +78,9 @@
 				color: white;
 			}
 
+			/* the parent indicator */
 			main div.subtree::before {
+				display: none;
 				content: "";
 				grid-column: 1;
 				grid-row: 1;
@@ -86,10 +89,66 @@
 				width: calc(calc(1px * var(--scale)) * var(--offset));
 				border-bottom: 1px solid var(--border-color);
 				border-left: var(--indicator-size) solid var(--border-color);
-				height: 0.55rem;
-				margin-top: 0.2rem;
+				height: 0.55em;
+				margin-top: 0.2em;
 				margin-left: calc(calc(-1px * var(--scale) * var(--offset)) - var(--indicator-size));
 				z-index: 0;
+			}
+
+			.parent-indicator {
+				--gutterSize: 0px;
+				--lineWidth: 1px;
+				--boxWidth: calc(var(--lineWidth) + calc(2 * var(--gutterSize)));
+				--widthPerRow: 0.3em;
+				--indent: calc(var(--widthPerRow) * var(--row));
+				--offsetFromParent: calc(1px * var(--scale) * var(--offset));
+				--offsetAndIndent: calc(calc(-1 * var(--indent)) + var(--offsetFromParent));
+
+				grid-row-start: 1;
+			    grid-row-end: calc(1 + var(--row));
+			    grid-column: 1;
+			    width: var(--boxWidth);
+			    margin-left: var(--offsetAndIndent);
+			    margin-top: 1em;
+			    margin-bottom: -0.5em;
+			    /* put one psuedo element on top, other on bottom */
+			    display: flex;
+			    flex-direction: column;
+			    justify-content: space-between;
+			}
+
+			.parent-indicator::before {
+				/* this can be negative, and is then considered 0, which is exactly what we want */
+			    width: calc(calc(-1 * var(--offsetAndIndent)));
+			}
+
+			.parent-indicator::after {
+			    width: var(--indent);
+			}
+
+			.parent-indicator::before, .parent-indicator::after {
+			    height: var(--boxWidth);
+			    content: "";
+			    display: block;
+			    border-top: var(--gutterSize) transparent solid;
+				border-bottom: : var(--gutterSize) transparent solid;
+			    margin-left: calc(var(--lineWidth) + var(--gutterSize));
+			}
+
+			.parent-indicator, .parent-indicator::before, .parent-indicator::after {
+			    box-sizing: border-box;
+			    background-color: var(--border-color);
+			}
+
+			.parent-indicator {
+				border-left: var(--gutterSize) transparent solid;
+				border-right: var(--gutterSize) transparent solid;
+			}
+
+			.parent-indicator:hover {
+			    z-index: 3;
+				--gutterSize: 2px;
+			    border-color: var(--background);
 			}
 
 			main div.item:hover, main div.item.selected {
@@ -114,9 +173,6 @@
 			
 		</main>
 		<script type="text/javascript">
-			/*
-			idea: show chronogical (and if same in order) log in details panel of children, much like textual log?
-			*/
 			document.getElementById("scale").addEventListener("input", event => {
 				const scale = parseFloat(event.target.value, 10);
 				let timescaleUnit;
@@ -127,12 +183,12 @@
 				} else if (scale >= 2) {
 					timescaleUnit = 20;
 				} else if (scale >= 1) {
+					timescaleUnit = 200;
+				} else {
 					timescaleUnit = 500;
-				} else if (scale >= 0.1) {
-					timescaleUnit = 1000;
 				}
 				document.body.style.setProperty("--scale", scale);
-				// document.querySelector("main").style.setProperty("--timescale-unit", timescaleUnit);
+				document.querySelector("main").style.setProperty("--timescale-unit", timescaleUnit);
 			});
 			let selectedItemNode;
 			document.querySelector("main").addEventListener("click", event => {
@@ -143,49 +199,76 @@
 				if (event.target.classList.contains("item")) {
 					selectedItemNode = event.target;
 					selectedItemNode.classList.add("selected");
+					const path = selectedItemNode.dataset.path;
+					let item = root;
+					if (path.length) {
+						const indices = path.split("/").map(i => parseInt(i, 10));
+						for(const i of indices) {
+							item = item.children[i];
+						}
+					}
+					console.log(item.values.label, item);
 				}
 			});
-			const data = [
-				{values: {label: "sync", type: "root"}, start: 122, end: 2323, children: [
-					{values: {label: "blub", type: "network"}, start: 60, end: 321, children: [
-						{values: {label: "bar1", type: "info"}, start: 60, end: 60},
-						{values: {label: "bar2", type: "info"}, start: 60, end: 60},
-						{values: {label: "bar3", type: "info"}, start: 60, end: 60},
-						{values: {label: "bar4", type: "info"}, start: 60, end: 60},
-						{values: {label: "bar5", type: "info"}, start: 61, end: 61},
-						{values: {label: "bar6", type: "info"}, start: 61, end: 61},
-						{values: {label: "bar7", type: "info"}, start: 61, end: 61},
-						{values: {label: "bar8", type: "info"}, start: 61, end: 61},
-					]},
-					{values: {label: "/sync request", type: "network"}, start: 145, end: 235},
-					{values: {label: "persist room", roomId: "!abc:matrix.org"}, start: 154, end: 210, children: [
-						{values: {label: "write room summary", roomId: "!abc:matrix.org"}, start: 167, end: 371},
-						{values: {label: "write timeline"}, start: 154, end: 321, children: [
-							{values: {label: "new live fragment", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
-								{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321}
-							]}
-							]}
-							]}
-							]}
-							]}
-							]}
-							]},
+			const root2 = {values: {label: "sync", type: "root"}, start: 122, end: 2323, children: [
+				{values: {label: "blub", type: "network"}, start: 60, end: 321, children: [
+					{values: {label: "bar1", type: "info"}, start: 60, end: 60},
+					{values: {label: "bar2", type: "info"}, start: 60, end: 60},
+					{values: {label: "bar3", type: "info"}, start: 60, end: 60},
+					{values: {label: "bar4", type: "info"}, start: 60, end: 60},
+					{values: {label: "bar5", type: "info"}, start: 61, end: 61},
+					{values: {label: "bar6", type: "info"}, start: 61, end: 61},
+					{values: {label: "bar7", type: "info"}, start: 61, end: 61},
+					{values: {label: "bar8", type: "info"}, start: 61, end: 61},
+				]},
+				{values: {label: "/sync request", type: "network"}, start: 145, end: 235},
+				{values: {label: "persist room", roomId: "!abc:matrix.org"}, start: 154, end: 210, children: [
+					{values: {label: "write room summary", roomId: "!abc:matrix.org"}, start: 167, end: 371},
+					{values: {label: "write timeline"}, start: 154, end: 321, children: [
+						{values: {label: "new live fragment", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321, children: [
+							{values: {label: "foo", type: "info", oldLiveFragment: 4, newLiveFragment: 5}, start: 154, end: 321}
+						]}
+						]}
+						]}
+						]}
+						]}
+						]}
 						]},
 					]},
-					{values: {label: "persist room", roomId: "!sfsf:matrix.org"}, start: 178, end: 331},
-					{values: {label: "persist room", roomId: "!fsdfsdf:matrix.org"}, start: 150, end: 321},
-					{values: {label: "persist room", roomId: "!werew:matrix.org"}, start: 210, end: 321, children: [
-						{values: {label: "write room summary", roomId: "!abc:matrix.org"}, start: 211, end: 255},
-					]},
-					{values: {label: "persist room", roomId: "!sdfdf:matrix.org"}, start: 1500, end: 2000},
-				]}
-			];
+				]},
+				{values: {label: "persist room", roomId: "!sfsf:matrix.org"}, start: 178, end: 331},
+				{values: {label: "persist room", roomId: "!fsdfsdf:matrix.org"}, start: 150, end: 321},
+				{values: {label: "persist room", roomId: "!werew:matrix.org"}, start: 210, end: 321, children: [
+					{values: {label: "write room summary", roomId: "!abc:matrix.org"}, start: 211, end: 255},
+				]},
+				{values: {label: "persist room", roomId: "!sdfdf:matrix.org"}, start: 1500, end: 2000},
+			]};
+			const root3 = {
+			  "start": 1575121032500,
+			  "end": 1575121032500,
+			  "values": {
+			    "label": "send message"
+			  },
+			  "error": "log.descend(...).wrap is not a function",
+			  "children": [
+			    {
+			      "start": 1575121032500,
+			      "end": 1575121032500,
+			      "values": {
+			        "label": "store pending event"
+			      },
+			      "error": null,
+			      "children": []
+			    }
+			  ]
+			};
+			const root = root3;
 
 			// result is the return value of itemToNode, e.g. node and range
 			function layoutChildren(childResults) {
@@ -220,14 +303,15 @@
 				rows.push([result]);
 			}
 			// returns the node and the total range (recursively) occupied by the node
-			function itemToNode(item, parentOffset, depth) {
+			function itemToNode(item, parentOffset, path) {
 				const subtree = document.createElement("div");
 				subtree.className = "subtree";
 				const offset = item.start - parentOffset;
 				subtree.style.setProperty("--offset", offset);
 				subtree.style.setProperty("--length", item.end - item.start);
-				subtree.style.setProperty("--depth", depth);
+				subtree.style.setProperty("--depth", path.length);
 				const itemNode = document.createElement("div");
+				itemNode.dataset.path = path.join("/");
 				itemNode.className = "item";
 				itemNode.appendChild(document.createTextNode(item.values.label));
 				subtree.appendChild(itemNode);
@@ -239,38 +323,57 @@
 					subtree.classList.add(`type-${item.values.type}`);
 				}
 
-				if (depth > 8) {
+				if (path.length > 8) {
 					itemNode.classList.add("dark");
 				}
 
-				if (item.children) {
+				if (item.children && item.children.length) {
 					subtree.classList.add("withChildren");
 					let results = [];
-					for (const c of item.children) {
-						const result = itemToNode(c, parentOffset + offset, depth + 1);
+					for (let i = 0; i < item.children.length; ++i) {
+						const c = item.children[i];
+						const result = itemToNode(c, parentOffset + offset, path.concat(i));
 						results.push(result);
 						minStart = Math.min(minStart, result.range.start);
 						maxEnd = Math.max(maxEnd, result.range.end);
 					}
 					const rows = layoutChildren(results);
 					let row = 1;
-					for (const r of rows) {
-						for(const {node} of r) {
+					for (const results of rows) {
+						for(const result of results) {
+							const {node} = result;
 							node.style.setProperty("--row", row);
 							subtree.appendChild(node);
+							const parentIndicator = document.createElement("div");
+							parentIndicator.className = "parent-indicator";
+							//parentIndicator.style.setProperty("--offset", offset);
+							parentIndicator.style.setProperty("--row", row);
+							parentIndicator.style.setProperty("--offset", result.offset);
+							parentIndicator.style.setProperty("--parentOffset", offset);
+							subtree.appendChild(parentIndicator);
 						}
 						row += 1;
 					}
 				}
 				const range = {start: minStart, end: maxEnd};
-				return {node: subtree, range};
+				return {node: subtree, range, offset};
 			}
 
-			const frag = document.createDocumentFragment();
-			for (const ri of data) {
-				frag.appendChild(itemToNode(ri, 0, 0).node);
-			}
-			document.querySelector("main").appendChild(frag);
+			document.querySelector("main").appendChild(itemToNode(root2, 0, []).node);
+			/*
+			layout needs to support concurrent actions because we want an item to be able to represent an async action,
+			so you could have multiple running at the same time.
+
+			why did we think the start time of children could be lesser than on of its parents though? (like blub & sync)
+
+			we need to work with extra dom nodes for parent-indicator until subgrid is a thing, then we can do it from a pseudo element
+			 */
+			/*
+			idea: show chronogical (and if same in order) log in details panel of children, much like textual log?
+
+
+			idea: allow collapsing self and all siblings so you get a better overview of all the siblings (e.g. all the rooms that got persisted during a sync)
+			*/
 		</script>
 	</body>
 </html>
