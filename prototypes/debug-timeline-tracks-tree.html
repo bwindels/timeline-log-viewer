@@ -17,8 +17,8 @@
 				overflow-x: scroll;
 				/* seems to render a thicker line starting from scale 1.92 an no line at all from scale 2.56 */
 				background: repeating-linear-gradient(to right,
-					white 0px,
-					white var(--timescale-line-start),
+					var(--background) 0px,
+					var(--background) var(--timescale-line-start),
 					gray var(--timescale-line-start),
 					gray var(--timescale-line-end));
 				background-attachment: local;
@@ -26,6 +26,7 @@
 
 			main {
 				--hue: 120deg;
+				--background: white;
 			}
 
 			main, main div.subtree {
@@ -95,16 +96,19 @@
 			}
 
 			.parent-indicator {
+				--gutterSize: 0px;
+				--lineWidth: 1px;
+				--boxWidth: calc(var(--lineWidth) + calc(2 * var(--gutterSize)));
 				--widthPerRow: 0.3em;
-				--width: calc(var(--widthPerRow) * var(--row));
+				--indent: calc(var(--widthPerRow) * var(--row));
 				--offsetFromParent: calc(1px * var(--scale) * var(--offset));
-				--indent: calc(calc(-1 * var(--width)) + var(--offsetFromParent));
+				--offsetAndIndent: calc(calc(-1 * var(--indent)) + var(--offsetFromParent));
 
 				grid-row-start: 1;
 			    grid-row-end: calc(1 + var(--row));
 			    grid-column: 1;
-			    width: 1px;
-			    margin-left: var(--indent);
+			    width: var(--boxWidth);
+			    margin-left: var(--offsetAndIndent);
 			    margin-top: 1em;
 			    margin-bottom: -0.5em;
 			    /* put one psuedo element on top, other on bottom */
@@ -115,29 +119,37 @@
 
 			.parent-indicator::before {
 				/* this can be negative, and is then considered 0, which is exactly what we want */
-			    width: calc(calc(-1 * var(--indent)));
+			    width: calc(calc(-1 * var(--offsetAndIndent)));
 			}
 
 			.parent-indicator::after {
-			    width: var(--width);
+			    width: var(--indent);
 			}
 
 			.parent-indicator::before, .parent-indicator::after {
-			    height: 1px;
+			    height: var(--boxWidth);
 			    content: "";
 			    display: block;
+			    border-top: var(--gutterSize) transparent solid;
+				border-bottom: : var(--gutterSize) transparent solid;
+			    margin-left: calc(var(--lineWidth) + var(--gutterSize));
 			}
 
 			.parent-indicator, .parent-indicator::before, .parent-indicator::after {
+			    box-sizing: border-box;
 			    background-color: var(--border-color);
 			}
 
-			.parent-indicator:hover {
-			    z-index: 10000;
+			.parent-indicator {
+				border-left: var(--gutterSize) transparent solid;
+				border-right: var(--gutterSize) transparent solid;
 			}
 
-
-			main
+			.parent-indicator:hover {
+			    z-index: 3;
+				--gutterSize: 2px;
+			    border-color: var(--background);
+			}
 
 			main div.item:hover, main div.item.selected {
 				min-width: max-content;
